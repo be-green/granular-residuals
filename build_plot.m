@@ -88,8 +88,6 @@ figure('Color',[1 1 1],'Units','inches','Position',[1 1 11 8.5]);
     % Y axis
     ylabel('Mean Excess Return');
     
-   
-    
      subplot(4,2,3)
     title('Panel 3: 25 Size by Book-to-Market Ports.')
     X = IV_Betas_SBM(:,2);
