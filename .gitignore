@@ -1,0 +1,9 @@
+
+# ignore rdata and project files
+*.Rdata
+.Rproj.user
+*.Rproj
+.Rhistory
+
+# ignore data for now
+data/
