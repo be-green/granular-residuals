@@ -386,6 +386,6 @@ figure('Color',[1 1 1],'Units','inches','Position',[1 1 11 8.5]);
 
 
 % landscape looks better
-orient(gcf,'landscape');
-export_fig(strcat('outputs/merged','.pdf'));
-close(gcf);
+% orient(gcf,'landscape');
+% export_fig('outputs/figure-4.pdf');
+% close(gcf);

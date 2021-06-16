@@ -85,36 +85,29 @@ for t = Lag : T
     B1 = (X' * X)^(-1) * X' * Temp_Mkt_Ret;
     % Fitted value
     Fitted = X(:,2:end) * B1(2:end);
+    Resid = Temp_Mkt_Ret - Fitted
     % Regressor matrix for Factors on IV
-    X_2 = [ones(Lag,1), Fitted];
+    X_2 = [ones(Lag,1), Fitted, Resid];
     % If yes to orthogonalize
     if Orth == 1
         % HML
         H_Temp = HML(t -  Lag + 1 : t);
         F_New = H_Temp;
         % Betas from regression
-        F_ti_beta = (X_2' * X_2) ^(-1) * X_2' *F_New;
+        F_ti_beta = (X_2' * X_2) ^(-1) * X_2' * F_New;
         % Residuals
         F_ti = F_New - repmat(Fitted,1,1).*F_ti_beta(2,:);
-        % Regressor matrix for Factors on Mkt
-        X_3 = [ones(Lag,1), Temp_Mkt_Ret];
-        % HML
-        H_Temp =  HML(t -  Lag + 1 : t);
-        % Group factors
-        F_New =  H_Temp;
-        % Betas from regression
-        F_ti_beta = (X_3' * X_3) ^(-1) * X_3' *F_New;
         % Residuals
         F_ti_OLS = F_New - repmat(Temp_Mkt_Ret,1,1).*F_ti_beta(2,:);
         % Save resids for OLS
         X_OLS{j} = [  ones(Lag, 1), F_ti_OLS, Temp_Mkt_Ret];
         % Regressor matrix
-        X_Main{j} = [ones(Lag, 1), F_ti, Fitted];
+        X_Main{j} = [ones(Lag, 1), F_ti, Fitted, Resid];
     else
         % Save resids for OLS
         X_OLS{j} = [  ones(Lag, 1),Temp_Mkt_Ret];
         % Regressor matrix
-        X_Main{j} = [ones(Lag, 1), Fitted];
+        X_Main{j} = [ones(Lag, 1), Fitted, Resid];
     end
     % Mean market return over window
     Mkt_Mean(j) = mean(Temp_Mkt_Ret);
@@ -122,33 +115,6 @@ for t = Lag : T
     disp(['Iteration: ',num2str(j)]);
 end
 toc;
-
-% for k = 1 : length(Dates_1)
-%     D1 = Dates_1(k);
-%     F_Save = [];
-% for i = 1 : length(Dates_Temp)
-%     D = Dates_Temp{i};
-%     F = X_Main{i}(:,3);
-% F = Save_PCs{i};
-%     Inds = (D==D1);
-%     F_Save = [F_Save; F(Inds,:)];
-% end
-% if k == 1 || k == length(Dates_1)
-%     Mean_PCs(k,:) = F_Save;
-% else
-%   Mean_PCs(k,:) = median(F_Save);  
-% end
-% 
-% end
-% 
-% Moving_Ave = movmean(Mean_PCs,[2,0]);
-% PC_Q = Moving_Ave(3:3:end, :);
-% 
-% Test_Mkt = movmean(Ex_Mkt,[2,0]);
-% Test_Mkt = Test_Mkt(3 : 3 : end);
-% 
-% 
-% corr(Test_Mkt,PC_Q)
 
 % Pre-allocate
 Betas = cell(length(P_Select), 1);
@@ -166,7 +132,7 @@ for k = P_Select
     
     % j again tracks the window
     j = 1;
-    % Pre-allocate
+    % Pre-allocateTemp
     Beta = zeros(T - Lag + 1,size(Ports_1, 2));
     M_Ret = zeros(T - Lag + 1,size(Ports_1, 2));
     M_Ret_OLS = zeros(T - Lag + 1,size(Ports_1, 2));
@@ -179,14 +145,12 @@ for k = P_Select
         Temp_Port = Ports_1(t -  Lag + 1 : t, :);
         Temp_Port_Size = Ports_Size_1(t -  Lag + 1 : t, :);
         
-        
         % Loop over stocks in each portfolio
         for i = 1 : size(Temp_Port, 2)
             % Call it P
-            P =Temp_Port(:, i);
+            P = Temp_Port(:, i);
             
-            P_Size =   Temp_Port_Size(:, i);
-            
+            P_Size = Temp_Port_Size(:, i);
             
             % For ports with missing/NaN, just set Beta to NaN and mean return
             % to NaN as well
