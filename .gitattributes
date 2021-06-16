@@ -1,3 +1,15 @@
 data/ filter=lfs diff=lfs merge=lfs -text
+data/DurationData filter=lfs diff=lfs merge=lfs -text
+data/FF_Monthly.csv filter=lfs diff=lfs merge=lfs -text
+data/monthly_cap_merged.csv filter=lfs diff=lfs merge=lfs -text
+data/monthly_ew_merged.csv filter=lfs diff=lfs merge=lfs -text
+data/shareM.mat filter=lfs diff=lfs merge=lfs -text
+data/retM.mat filter=lfs diff=lfs merge=lfs -text
+data/stock_returns.csv filter=lfs diff=lfs merge=lfs -text
+data/DurationData.zip filter=lfs diff=lfs merge=lfs -text
+data/combined-portfolios-factors.csv filter=lfs diff=lfs merge=lfs -text
+data/dur_factor.xlsx filter=lfs diff=lfs merge=lfs -text
+data/monthly_merged.csv filter=lfs diff=lfs merge=lfs -text
+data/priceM.mat filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
 data\* filter=lfs diff=lfs merge=lfs -text
