@@ -23,7 +23,7 @@ subtractRFCol <- function(DT, col) {
   }
 }
 
-plan(multiprocess(workers = 4))
+# plan(multiprocess(workers = 4))
 
 source("src/R/make_combined_data.R")
 
@@ -117,7 +117,7 @@ run_iv_pca <- function(stock_returns, factor_returns,
 
     tsr <- transpose(sr[complete.cases(sr)])
 
-    pcs <-  prcomp(
+    pcs <- prcomp(
       tsr,
       scale. = F,
       center = F,
@@ -151,8 +151,6 @@ run_iv_pca <- function(stock_returns, factor_returns,
     prProj[,Ind := i - start - window + 2]
 
     all_coefs[[i - start - window + 2]] <- prProj
-
-
   }
 
   coef_data <- rbindlist(all_coefs) %>%
@@ -175,11 +173,13 @@ run_iv_pca <- function(stock_returns, factor_returns,
   coef_data[]
 }
 
+rolling_coefficients <- run_iv_pca(stock_returns, factor_returns,
+           port_returns, 60)
+
 
 run_with_weights <- function(n, factor_returns, stock_returns, port_returns, window, ...) {
-  w <- rexp(nrow(factor_returns))
   run_iv_pca(stock_returns, factor_returns,
-                          port_returns, window, weights = w, ...)
+                          port_returns, window, ...)
 }
 
 s <- proc.time()
@@ -192,25 +192,16 @@ e <- proc.time()
 
 diff = e - s
 
+#
+# booted <- future_map(1:400, run_with_weights,
+#                      factor_returns = factor_returns,
+#                      stock_returns = stock_returns,
+#                      port_returns = port_returns,
+#                      window = window, .progress = T, .options = furrr_options(seed = 123))
 
-booted <- future_map(1:400, run_with_weights,
-                     factor_returns = factor_returns,
-                     stock_returns = stock_returns,
-                     port_returns = port_returns,
-                     window = window, .progress = T, .options = furrr_options(seed = 123))
-
-
-
-
-coef_data %>%
-  split(by = c("Ind")) %>%
-  lapply(function(x) lm(Return ~ ExMktProj + GranResid + OHML, data = x) %>%
-           coef %>%
-           t %>%
-           as.data.table) %>%
-  rbindlist(idcol = F) %>%
-  .[,lapply(.SD, mean, na.rm = T)]
-
-coef_data %>%
+rolling_coefficients[Sort %in% "Size10"] %>%
   .[,lapply(.SD, mean, na.rm = T), by = c("Portfolio", "Sort")] %>%
-  lm(Return ~ ExMktProj + GranResid + OHML, data = .)
+  ggplot(
+       aes(x = ExMktProj, y = Return, text = PortfolioNumber)) +
+  geom_point() +
+  facet_wrap(~Sort)

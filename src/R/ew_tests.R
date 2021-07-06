@@ -26,7 +26,9 @@ subtractRFCol <- function(DT, col) {
 # return regression coefficients and average returns
 genCoef <- function(R, ExMkt) {
   fit <- lm(R ~ ExMkt)
-  data.table(t(coef(fit)), avgret = mean(R))
+  tbl <- data.table(t(coef(fit)), avgret = mean(R))
+  setnames(tbl, names(coef(fit)), c("(Intercept)",colnames(ExMkt)))
+  tbl[]
 }
 
 # plan(multiprocess(workers = 4))
@@ -39,6 +41,7 @@ replaceZeros(
   stock_returns
 )
 
+# FF3 factors
 factor_returns <- fread("data/FF_Monthly.csv") %>%
   .[,Date := eomonth(as.Date(paste0(V1, "25"),
                              format = "%Y%m%d"))] %>%
@@ -46,6 +49,7 @@ factor_returns <- fread("data/FF_Monthly.csv") %>%
   .[, c("ExMkt", "SMB", "HML", "RF") := lapply(.SD, function(x) x/100),
     .SDcols = c("ExMkt", "SMB", "HML", "RF")]
 
+# grab sorted portfolio returns
 port_returns <- fread('data/monthly_merged.csv') %>%
   melt(1, variable.name = "Portfolio", value.name = "Return",
        variable.factor = F) %>%
@@ -64,12 +68,14 @@ ew_market <- as.vector(rowMeans(stock_returns, na.rm = T))
 # work in excess return
 factor_returns[,EWMkt := ew_market/100 - RF]
 
+# get GR via projection on equal weighted market
 getGR <- function(ExMkt, EWMkt) {
   fit <- lm(ExMkt ~ EWMkt)
   coef(fit)[1] + resid(fit)
 }
 
 # proxy for GR is just the regular market minus the equal weighted market
+# THIS IS THE EW GR TIME SERIES
 factor_returns[,GR := getGR(ExMkt, EWMkt)]
 
 # combine factors with portfolios
@@ -80,8 +86,11 @@ combined_data[,Return := Return - RF]
 # run FM with HML and No Granular Residuals
 # across all portfolios
 ts_reg <- combined_data[!is.na(Return),
-                        genCoef(Return, cbind(EWMkt, HML)),
+                        genCoef(Return, cbind(ExMkt)),
                         by = Portfolio]
+
+
+
 setnames(ts_reg, colnames(ts_reg), stringr::str_replace(colnames(ts_reg), fixed("cbind(1, ExMkt)"), ""))
 
 ts_reg[,3 := NULL]
@@ -102,11 +111,12 @@ ts_reg_with_gr <- combined_data[!is.na(Return),
 library(ggplot2)
 merge(ts_reg, ts_reg_with_gr,
       by = "Portfolio", suffixes = c("_noGR", "_withGR")) %>%
-  .[,.(Sort = Portfolio, ExMkt_noGR, ExMkt_withGR)] %>%
+  .[,.(Sort = Portfolio, `(Intercept)_noGR`, `(Intercept)_withGR`)] %>%
+  .[Sort %like% "size10_[0-9]+$"]  %>%
   melt(1) %>%
-  ggplot(aes(x = Sort, y = value, fill = variable)) +
+  .[,PortNumber := as.numeric(str_extract(Sort, "[0-9]+$"))] %>%
+  ggplot(aes(x = PortNumber, y = value, fill = variable)) +
   geom_col(position = "dodge", color = "black") +
   coord_flip() +
-  theme_mit() +
-  scale_fill_mit()
-
+  scale_x_continuous(breaks = seq(0, 100, by = 1)) +
+  scale_y_continuous(labels = scales::percent)

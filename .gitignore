@@ -8,3 +8,6 @@
 .ignore
 packrat/lib*/
 .RDataTmp
+.DS_Store
+.Rprofile
+.gitattributes
